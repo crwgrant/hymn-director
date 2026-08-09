@@ -221,6 +221,24 @@ def add_hymn(title: str, number: int | None, verses: list[str]) -> int:
         return hymn_id
 
 
+def get_hymn(hymn_id: int) -> sqlite3.Row | None:
+    with get_connection() as conn:
+        return conn.execute(
+            "SELECT id, title, number FROM hymns WHERE id = ?",
+            (hymn_id,),
+        ).fetchone()
+
+
+def delete_hymn(hymn_id: int) -> None:
+    with get_connection() as conn:
+        row = conn.execute("SELECT id FROM hymns WHERE id = ?", (hymn_id,)).fetchone()
+        if row is None:
+            raise ValueError("Hymn not found.")
+        conn.execute("DELETE FROM verses WHERE hymn_id = ?", (hymn_id,))
+        conn.execute("DELETE FROM hymns WHERE id = ?", (hymn_id,))
+        conn.commit()
+
+
 def init_cli() -> None:
     init_database()
     hymns = list_hymns()

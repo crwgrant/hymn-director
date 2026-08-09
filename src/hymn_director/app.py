@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -103,6 +104,12 @@ class HymnDisplayWindow(QMainWindow):
         add_hymn_button.clicked.connect(self._open_add_hymn_window)
         layout.addWidget(add_hymn_button)
 
+        self.delete_hymn_button = QPushButton("Delete Hymn")
+        self.delete_hymn_button.setFont(button_font)
+        self.delete_hymn_button.setStyleSheet(button_style)
+        self.delete_hymn_button.clicked.connect(self._delete_selected_hymn)
+        layout.addWidget(self.delete_hymn_button)
+
         verse_label = QLabel("Verse Navigation")
         verse_label.setFont(QFont("Helvetica", 13, QFont.Weight.Bold))
         verse_label.setStyleSheet("color: #1a1a1a;")
@@ -162,13 +169,35 @@ class HymnDisplayWindow(QMainWindow):
 
         return panel
 
-    def _make_hymn_item(self, hymn: sqlite3.Row) -> QListWidgetItem:
+    def _hymn_label(self, hymn: sqlite3.Row) -> str:
         label = hymn["title"]
         if hymn["number"] is not None:
             label = f"{hymn['number']}. {label}"
-        item = QListWidgetItem(label)
+        return label
+
+    def _make_hymn_item(self, hymn: sqlite3.Row) -> QListWidgetItem:
+        item = QListWidgetItem(self._hymn_label(hymn))
         item.setData(Qt.ItemDataRole.UserRole, hymn["id"])
         return item
+
+    def _reload_hymn_list(self, select_hymn_id: int | None = None) -> None:
+        self.hymns = database.list_hymns()
+        self.hymn_list.blockSignals(True)
+        self.hymn_list.clear()
+        for hymn in self.hymns:
+            self.hymn_list.addItem(self._make_hymn_item(hymn))
+        self.hymn_list.blockSignals(False)
+
+        if select_hymn_id is not None and any(
+            hymn["id"] == select_hymn_id for hymn in self.hymns
+        ):
+            self._select_hymn(select_hymn_id)
+        elif self.hymns:
+            self._select_hymn(self.hymns[0]["id"])
+        else:
+            self.current_hymn_id = None
+            self.current_verse = 1
+            self._refresh_display()
 
     def _open_add_hymn_window(self) -> None:
         if self._add_hymn_window is None:
@@ -182,13 +211,39 @@ class HymnDisplayWindow(QMainWindow):
         self._add_hymn_window.activateWindow()
 
     def _on_hymn_added(self, hymn_id: int) -> None:
-        self.hymns = database.list_hymns()
-        self.hymn_list.blockSignals(True)
-        self.hymn_list.clear()
-        for hymn in self.hymns:
-            self.hymn_list.addItem(self._make_hymn_item(hymn))
-        self.hymn_list.blockSignals(False)
-        self._select_hymn(hymn_id)
+        self._reload_hymn_list(select_hymn_id=hymn_id)
+
+    def _delete_selected_hymn(self) -> None:
+        if self.current_hymn_id is None:
+            return
+
+        hymn = database.get_hymn(self.current_hymn_id)
+        if hymn is None:
+            self._reload_hymn_list()
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Delete Hymn",
+            f'Delete "{self._hymn_label(hymn)}"? This cannot be undone.',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        current_index = next(
+            (index for index, h in enumerate(self.hymns) if h["id"] == hymn["id"]),
+            0,
+        )
+        database.delete_hymn(hymn["id"])
+
+        remaining = database.list_hymns()
+        select_hymn_id = None
+        if remaining:
+            next_index = min(current_index, len(remaining) - 1)
+            select_hymn_id = remaining[next_index]["id"]
+        self._reload_hymn_list(select_hymn_id=select_hymn_id)
 
     def _verse_count(self) -> int:
         if self.current_hymn_id is None:
@@ -241,6 +296,8 @@ class HymnDisplayWindow(QMainWindow):
             self.last_button,
         ):
             button.setEnabled(has_hymn)
+
+        self.delete_hymn_button.setEnabled(self.current_hymn_id is not None)
 
         self.hymn_list.blockSignals(True)
         for row in range(self.hymn_list.count()):

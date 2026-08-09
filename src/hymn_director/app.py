@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import sqlite3
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -19,6 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 from hymn_director import database
+from hymn_director.add_hymn_window import AddHymnWindow
 
 
 class HymnDisplayWindow(QMainWindow):
@@ -34,6 +36,7 @@ class HymnDisplayWindow(QMainWindow):
         self.hymns = database.list_hymns()
         self.current_hymn_id = self.hymns[0]["id"] if self.hymns else None
         self.current_verse = 1
+        self._add_hymn_window: AddHymnWindow | None = None
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -90,14 +93,15 @@ class HymnDisplayWindow(QMainWindow):
             "QListWidget::item:hover { background-color: #d8d8d8; }"
         )
         for hymn in self.hymns:
-            label = hymn["title"]
-            if hymn["number"] is not None:
-                label = f"{hymn['number']}. {label}"
-            item = QListWidgetItem(label)
-            item.setData(Qt.ItemDataRole.UserRole, hymn["id"])
-            self.hymn_list.addItem(item)
+            self.hymn_list.addItem(self._make_hymn_item(hymn))
         self.hymn_list.currentItemChanged.connect(self._on_hymn_selected)
         layout.addWidget(self.hymn_list, stretch=1)
+
+        add_hymn_button = QPushButton("Add Hymn...")
+        add_hymn_button.setFont(button_font)
+        add_hymn_button.setStyleSheet(button_style)
+        add_hymn_button.clicked.connect(self._open_add_hymn_window)
+        layout.addWidget(add_hymn_button)
 
         verse_label = QLabel("Verse Navigation")
         verse_label.setFont(QFont("Helvetica", 13, QFont.Weight.Bold))
@@ -157,6 +161,34 @@ class HymnDisplayWindow(QMainWindow):
         layout.addStretch()
 
         return panel
+
+    def _make_hymn_item(self, hymn: sqlite3.Row) -> QListWidgetItem:
+        label = hymn["title"]
+        if hymn["number"] is not None:
+            label = f"{hymn['number']}. {label}"
+        item = QListWidgetItem(label)
+        item.setData(Qt.ItemDataRole.UserRole, hymn["id"])
+        return item
+
+    def _open_add_hymn_window(self) -> None:
+        if self._add_hymn_window is None:
+            self._add_hymn_window = AddHymnWindow()
+            self._add_hymn_window.hymn_saved.connect(self._on_hymn_added)
+            self._add_hymn_window.destroyed.connect(
+                lambda: setattr(self, "_add_hymn_window", None)
+            )
+        self._add_hymn_window.show()
+        self._add_hymn_window.raise_()
+        self._add_hymn_window.activateWindow()
+
+    def _on_hymn_added(self, hymn_id: int) -> None:
+        self.hymns = database.list_hymns()
+        self.hymn_list.blockSignals(True)
+        self.hymn_list.clear()
+        for hymn in self.hymns:
+            self.hymn_list.addItem(self._make_hymn_item(hymn))
+        self.hymn_list.blockSignals(False)
+        self._select_hymn(hymn_id)
 
     def _verse_count(self) -> int:
         if self.current_hymn_id is None:

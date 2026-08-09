@@ -125,6 +125,37 @@ def get_verse(hymn_id: int, verse_number: int) -> sqlite3.Row | None:
         ).fetchone()
 
 
+def get_next_hymn_number() -> int:
+    with get_connection() as conn:
+        row = conn.execute("SELECT MAX(number) AS max_num FROM hymns").fetchone()
+        max_num = row["max_num"]
+        return (max_num or 0) + 1
+
+
+def add_hymn(title: str, number: int | None, verses: list[str]) -> int:
+    title = title.strip()
+    if not title:
+        raise ValueError("Title is required.")
+
+    cleaned_verses = [text.strip() for text in verses if text.strip()]
+    if not cleaned_verses:
+        raise ValueError("At least one verse is required.")
+
+    with get_connection() as conn:
+        cursor = conn.execute(
+            "INSERT INTO hymns (title, number) VALUES (?, ?)",
+            (title, number),
+        )
+        hymn_id = cursor.lastrowid
+        for verse_number, text in enumerate(cleaned_verses, start=1):
+            conn.execute(
+                "INSERT INTO verses (hymn_id, verse_number, text) VALUES (?, ?, ?)",
+                (hymn_id, verse_number, text),
+            )
+        conn.commit()
+        return hymn_id
+
+
 def init_cli() -> None:
     init_database()
     hymns = list_hymns()

@@ -131,10 +131,6 @@ The build bundles a seed `hymns.db`. On first launch of a built app, that databa
 
 Display settings and any hymns you add or edit are saved there, not inside the application bundle.
 
-### Continuous integration
-
-GitHub Actions builds all three platforms automatically when you push a version tag (`v*`) or trigger the **Build** workflow manually. Artifacts are uploaded from the Actions run page.
-
 ## Data files (development)
 
 | File | Purpose |

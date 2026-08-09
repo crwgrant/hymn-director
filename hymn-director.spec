@@ -14,8 +14,9 @@ icon_png = icons_dir / "hymn-director-256.png"
 datas = []
 if bundled_db.exists():
     datas.append((str(bundled_db), "data"))
-if icon_png.exists():
-    datas.append((str(icon_png), "assets/icons"))
+if icons_dir.exists():
+    for png in sorted(icons_dir.glob("hymn-director-*.png")):
+        datas.append((str(png), "assets/icons"))
 
 icon_file = None
 if sys.platform == "win32" and icon_ico.exists():
@@ -36,6 +37,7 @@ a = Analysis(
         "hymn_director.display_config",
         "hymn_director.database",
         "hymn_director.paths",
+        "hymn_director.icon_utils",
     ],
     hookspath=[],
     hooksconfig={},

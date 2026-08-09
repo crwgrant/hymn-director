@@ -6,7 +6,7 @@ import sys
 import sqlite3
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -27,14 +27,8 @@ from hymn_director.display_config import (
     format_display_html,
     load_display_settings,
 )
-from hymn_director.paths import icon_path
+from hymn_director.icon_utils import apply_app_icon, apply_window_icon
 from hymn_director.settings_window import SettingsWindow
-
-
-def apply_app_icon(app: QApplication) -> None:
-    path = icon_path()
-    if path is not None:
-        app.setWindowIcon(QIcon(str(path)))
 
 
 class HymnDisplayWindow(QMainWindow):
@@ -45,9 +39,7 @@ class HymnDisplayWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Hymn Director")
         self.resize(self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT)
-        path = icon_path()
-        if path is not None:
-            self.setWindowIcon(QIcon(str(path)))
+        apply_window_icon(self)
 
         database.init_database()
         self.hymns = database.list_hymns()

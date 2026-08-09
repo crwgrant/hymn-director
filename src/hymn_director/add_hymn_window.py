@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
 )
 
 from hymn_director import database
+from hymn_director.icon_utils import apply_window_icon
 
 WINDOW_STYLE = (
     "QWidget { background-color: #ffffff; color: #000000; }"
@@ -173,6 +174,7 @@ class AddHymnWindow(QMainWindow):
         self.setWindowTitle("Add Hymn")
         self.resize(520, 560)
         self.setStyle(QStyleFactory.create("Fusion"))
+        apply_window_icon(self)
 
         central = QWidget()
         central.setStyleSheet(WINDOW_STYLE)

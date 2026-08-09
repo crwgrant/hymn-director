@@ -49,11 +49,23 @@ def config_path() -> Path:
 
 
 def icon_path() -> Path | None:
-    candidates = [
-        project_root() / "assets" / "icons" / "hymn-director-256.png",
-        project_root() / "assets" / "icons" / "hymn-director-1024.png",
-    ]
-    for candidate in candidates:
+    directory = icons_dir()
+    if directory is None:
+        return None
+
+    for name in (
+        "hymn-director-256.png",
+        "hymn-director-128.png",
+        "hymn-director-1024.png",
+    ):
+        candidate = directory / name
         if candidate.exists():
             return candidate
+    return None
+
+
+def icons_dir() -> Path | None:
+    directory = project_root() / "assets" / "icons"
+    if directory.exists():
+        return directory
     return None

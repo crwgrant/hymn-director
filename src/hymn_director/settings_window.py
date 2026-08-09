@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 )
 
 from hymn_director.display_config import DisplaySettings, save_display_settings
+from hymn_director.icon_utils import apply_window_icon
 
 WINDOW_STYLE = (
     "QWidget { background-color: #ffffff; color: #000000; }"
@@ -57,6 +58,7 @@ class SettingsWindow(QMainWindow):
         self.setWindowTitle("Display Settings")
         self.resize(460, 360)
         self.setStyle(QStyleFactory.create("Fusion"))
+        apply_window_icon(self)
 
         central = QWidget()
         central.setStyleSheet(WINDOW_STYLE)

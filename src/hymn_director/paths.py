@@ -46,3 +46,26 @@ def db_path() -> Path:
 
 def config_path() -> Path:
     return user_data_dir() / "display_settings.json"
+
+
+def icon_path() -> Path | None:
+    directory = icons_dir()
+    if directory is None:
+        return None
+
+    for name in (
+        "hymn-director-256.png",
+        "hymn-director-128.png",
+        "hymn-director-1024.png",
+    ):
+        candidate = directory / name
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def icons_dir() -> Path | None:
+    directory = project_root() / "assets" / "icons"
+    if directory.exists():
+        return directory
+    return None

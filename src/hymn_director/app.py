@@ -27,6 +27,7 @@ from hymn_director.display_config import (
     format_display_html,
     load_display_settings,
 )
+from hymn_director.icon_utils import apply_app_icon, apply_window_icon
 from hymn_director.settings_window import SettingsWindow
 
 
@@ -38,6 +39,7 @@ class HymnDisplayWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Hymn Director")
         self.resize(self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT)
+        apply_window_icon(self)
 
         database.init_database()
         self.hymns = database.list_hymns()
@@ -369,6 +371,7 @@ class HymnDisplayWindow(QMainWindow):
 
 def main() -> int:
     app = QApplication(sys.argv)
+    apply_app_icon(app)
     window = HymnDisplayWindow()
     window.show()
     return app.exec()

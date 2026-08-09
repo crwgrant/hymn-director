@@ -1,14 +1,28 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
 from pathlib import Path
 
 project_root = Path(SPECPATH)
 entry_script = project_root / "src" / "hymn_director" / "__main__.py"
 bundled_db = project_root / "data" / "hymns.db"
+icons_dir = project_root / "assets" / "icons"
+icon_ico = icons_dir / "hymn-director.ico"
+icon_icns = icons_dir / "hymn-director.icns"
+icon_png = icons_dir / "hymn-director-256.png"
 
 datas = []
 if bundled_db.exists():
     datas.append((str(bundled_db), "data"))
+if icons_dir.exists():
+    for png in sorted(icons_dir.glob("hymn-director-*.png")):
+        datas.append((str(png), "assets/icons"))
+
+icon_file = None
+if sys.platform == "win32" and icon_ico.exists():
+    icon_file = str(icon_ico)
+elif sys.platform == "darwin" and icon_icns.exists():
+    icon_file = str(icon_icns)
 
 a = Analysis(
     [str(entry_script)],
@@ -23,6 +37,7 @@ a = Analysis(
         "hymn_director.display_config",
         "hymn_director.database",
         "hymn_director.paths",
+        "hymn_director.icon_utils",
     ],
     hookspath=[],
     hooksconfig={},
@@ -49,6 +64,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=icon_file,
 )
 coll = COLLECT(
     exe,
@@ -60,12 +76,10 @@ coll = COLLECT(
     name="HymnDirector",
 )
 
-import sys
-
 if sys.platform == "darwin":
     app = BUNDLE(
         coll,
         name="HymnDirector.app",
-        icon=None,
+        icon=str(icon_icns) if icon_icns.exists() else None,
         bundle_identifier="org.hymn-director.app",
     )

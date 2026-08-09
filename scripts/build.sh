@@ -6,6 +6,9 @@ cd "$(dirname "$0")/.."
 echo "Ensuring bundled database exists..."
 uv run init-db
 
+echo "Generating platform icons..."
+uv run python scripts/generate_icons.py
+
 echo "Building Hymn Director..."
 uv run pyinstaller --noconfirm hymn-director.spec
 

@@ -36,17 +36,16 @@ INPUT_STYLE = (
     "  color: #000000;"
     "  border: 1px solid #cccccc;"
     "  border-radius: 4px;"
-    "  padding: 6px;"
+    "  padding: 4px;"
     "}"
 )
 
 STEPPER_BUTTON_BASE = (
     "QPushButton {"
-    "  border: none;"
-    "  border-left: 1px solid #cccccc;"
     "  background-color: #f0f0f0;"
     "  color: #333333;"
     "  padding: 0px;"
+    "  margin-right: 4px;"
     "}"
     "QPushButton:hover { background-color: #e8e8e8; }"
     "QPushButton:pressed { background-color: #d8d8d8; }"
@@ -59,8 +58,7 @@ NUMBER_LINE_STYLE = (
     "  color: #000000;"
     "  border: 1px solid #cccccc;"
     "  border-radius: 4px;"
-    "  padding: 6px;"
-    "  padding-right: 26px;"
+    "  padding: 4px;"
     "}"
 )
 

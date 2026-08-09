@@ -76,9 +76,55 @@ def get_connection() -> sqlite3.Connection:
 def init_database() -> None:
     with get_connection() as conn:
         conn.executescript(SCHEMA)
+        _migrate_unique_hymn_numbers(conn)
         count = conn.execute("SELECT COUNT(*) FROM hymns").fetchone()[0]
         if count == 0:
             _seed_sample_data(conn)
+
+
+def _next_available_number(conn: sqlite3.Connection) -> int:
+    used = {
+        row[0]
+        for row in conn.execute(
+            "SELECT number FROM hymns WHERE number IS NOT NULL"
+        ).fetchall()
+    }
+    candidate = 1
+    while candidate in used:
+        candidate += 1
+    return candidate
+
+
+def _migrate_unique_hymn_numbers(conn: sqlite3.Connection) -> None:
+    duplicate_numbers = conn.execute(
+        """
+        SELECT number FROM hymns
+        WHERE number IS NOT NULL
+        GROUP BY number
+        HAVING COUNT(*) > 1
+        """
+    ).fetchall()
+
+    for row in duplicate_numbers:
+        hymns = conn.execute(
+            "SELECT id FROM hymns WHERE number = ? ORDER BY id",
+            (row["number"],),
+        ).fetchall()
+        for hymn in hymns[1:]:
+            new_number = _next_available_number(conn)
+            conn.execute(
+                "UPDATE hymns SET number = ? WHERE id = ?",
+                (new_number, hymn["id"]),
+            )
+
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_hymns_number
+        ON hymns(number)
+        WHERE number IS NOT NULL
+        """
+    )
+    conn.commit()
 
 
 def _seed_sample_data(conn: sqlite3.Connection) -> None:
@@ -127,9 +173,22 @@ def get_verse(hymn_id: int, verse_number: int) -> sqlite3.Row | None:
 
 def get_next_hymn_number() -> int:
     with get_connection() as conn:
-        row = conn.execute("SELECT MAX(number) AS max_num FROM hymns").fetchone()
-        max_num = row["max_num"]
-        return (max_num or 0) + 1
+        return _next_available_number(conn)
+
+
+def hymn_number_exists(number: int, exclude_id: int | None = None) -> bool:
+    with get_connection() as conn:
+        if exclude_id is None:
+            row = conn.execute(
+                "SELECT 1 FROM hymns WHERE number = ? LIMIT 1",
+                (number,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT 1 FROM hymns WHERE number = ? AND id != ? LIMIT 1",
+                (number, exclude_id),
+            ).fetchone()
+        return row is not None
 
 
 def add_hymn(title: str, number: int | None, verses: list[str]) -> int:
@@ -141,11 +200,17 @@ def add_hymn(title: str, number: int | None, verses: list[str]) -> int:
     if not cleaned_verses:
         raise ValueError("At least one verse is required.")
 
+    if number is not None and hymn_number_exists(number):
+        raise ValueError(f"Hymn number {number} is already in use.")
+
     with get_connection() as conn:
-        cursor = conn.execute(
-            "INSERT INTO hymns (title, number) VALUES (?, ?)",
-            (title, number),
-        )
+        try:
+            cursor = conn.execute(
+                "INSERT INTO hymns (title, number) VALUES (?, ?)",
+                (title, number),
+            )
+        except sqlite3.IntegrityError as error:
+            raise ValueError(f"Hymn number {number} is already in use.") from error
         hymn_id = cursor.lastrowid
         for verse_number, text in enumerate(cleaned_verses, start=1):
             conn.execute(

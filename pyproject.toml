@@ -1,0 +1,19 @@
+[project]
+name = "hymn-director"
+version = "0.1.0"
+description = "Display hymn verses for congregational singing"
+authors = [
+    { name = "crwgrant", email = "crwgrant@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pyqt6>=6.6.0",
+]
+
+[project.scripts]
+hymn-director = "hymn_director.app:main"
+init-db = "hymn_director.database:init_cli"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"

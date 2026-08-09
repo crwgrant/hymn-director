@@ -17,12 +17,7 @@ class DisplaySettings:
     word_spacing: float = 0.0
 
 
-def config_path() -> Path:
-    for parent in Path(__file__).resolve().parents:
-        if (parent / "pyproject.toml").exists():
-            return parent / "data" / "display_settings.json"
-    return Path(__file__).resolve().parents[2] / "data" / "display_settings.json"
-
+from hymn_director.paths import config_path
 
 CONFIG_PATH = config_path()
 

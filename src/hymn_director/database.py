@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS hymns (
@@ -56,12 +55,7 @@ SAMPLE_HYMNS = [
 ]
 
 
-def db_path() -> Path:
-    for parent in Path(__file__).resolve().parents:
-        if (parent / "pyproject.toml").exists():
-            return parent / "data" / "hymns.db"
-    return Path(__file__).resolve().parents[2] / "data" / "hymns.db"
-
+from hymn_director.paths import db_path
 
 DB_PATH = db_path()
 

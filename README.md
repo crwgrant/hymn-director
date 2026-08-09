@@ -80,9 +80,62 @@ Click **Display Settings...** to change how text appears on the right panel:
 | **Letter spacing** | Extra space between characters, in pixels |
 | **Word spacing** | Extra space between words, in pixels |
 
-Click **Save** to apply changes. Settings are stored in `data/display_settings.json` and restored the next time you open the app.
+Click **Save** to apply changes. Settings are stored in `data/display_settings.json` during development and in your user data directory when running a built app.
 
-## Data files
+## Building the app
+
+Hymn Director uses [PyInstaller](https://pyinstaller.org/) to build standalone executables for macOS, Windows, and Linux.
+
+### Local build
+
+Install development dependencies, then run the build script for your platform:
+
+```bash
+uv sync --dev
+```
+
+**macOS / Linux:**
+
+```bash
+./scripts/build.sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+.\scripts\build.ps1
+```
+
+Or run the steps manually:
+
+```bash
+uv run init-db
+uv run pyinstaller --noconfirm hymn-director.spec
+```
+
+Build output appears in `dist/`:
+
+| Platform | Output |
+|----------|--------|
+| macOS | `dist/HymnDirector.app` |
+| Windows | `dist/HymnDirector/HymnDirector.exe` |
+| Linux | `dist/HymnDirector/HymnDirector` |
+
+### Bundled data
+
+The build bundles a seed `hymns.db`. On first launch of a built app, that database is copied to the platform-specific user data directory:
+
+- **macOS:** `~/Library/Application Support/hymn-director/`
+- **Windows:** `%LOCALAPPDATA%\hymn-director\hymn-director\`
+- **Linux:** `~/.local/share/hymn-director/`
+
+Display settings and any hymns you add or edit are saved there, not inside the application bundle.
+
+### Continuous integration
+
+GitHub Actions builds all three platforms automatically when you push a version tag (`v*`) or trigger the **Build** workflow manually. Artifacts are uploaded from the Actions run page.
+
+## Data files (development)
 
 | File | Purpose |
 |------|---------|
@@ -101,8 +154,10 @@ uv run init-db
 
 ```
 hymn-director/
-├── data/                  # Database and settings (created at runtime)
+├── data/                  # Database and settings (development)
+├── scripts/               # Build scripts
 ├── src/hymn_director/     # Application source code
+├── hymn-director.spec     # PyInstaller build configuration
 ├── pyproject.toml
 └── uv.lock
 ```

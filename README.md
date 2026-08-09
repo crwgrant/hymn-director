@@ -115,11 +115,19 @@ uv run pyinstaller --noconfirm hymn-director.spec
 
 Build output appears in `dist/`:
 
-| Platform | Output |
-|----------|--------|
-| macOS | `dist/HymnDirector.app` |
-| Windows | `dist/HymnDirector/HymnDirector.exe` |
-| Linux | `dist/HymnDirector/HymnDirector` |
+| Platform | Output | Icon format |
+|----------|--------|-------------|
+| macOS | `dist/HymnDirector.app` | `.icns` |
+| Windows | `dist/HymnDirector/HymnDirector.exe` | `.ico` |
+| Linux | `dist/HymnDirector/HymnDirector` | window icon via `.png` |
+
+Icon source files live in `assets/icons/`. To regenerate platform icons from the master PNG:
+
+```bash
+uv run python scripts/generate_icons.py
+```
+
+Note: `.icns` generation requires macOS (`iconutil`). The repository includes pre-generated icon files so builds work on all platforms.
 
 ### Bundled data
 

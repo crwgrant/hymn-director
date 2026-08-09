@@ -22,6 +22,12 @@ from PyQt6.QtWidgets import (
 
 from hymn_director import database
 from hymn_director.add_hymn_window import AddHymnWindow
+from hymn_director.display_config import (
+    DisplaySettings,
+    format_display_html,
+    load_display_settings,
+)
+from hymn_director.settings_window import SettingsWindow
 
 
 class HymnDisplayWindow(QMainWindow):
@@ -37,7 +43,9 @@ class HymnDisplayWindow(QMainWindow):
         self.hymns = database.list_hymns()
         self.current_hymn_id = self.hymns[0]["id"] if self.hymns else None
         self.current_verse = 1
+        self.display_settings = load_display_settings()
         self._add_hymn_window: AddHymnWindow | None = None
+        self._settings_window: SettingsWindow | None = None
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -110,6 +118,12 @@ class HymnDisplayWindow(QMainWindow):
         self.delete_hymn_button.clicked.connect(self._delete_selected_hymn)
         layout.addWidget(self.delete_hymn_button)
 
+        settings_button = QPushButton("Display Settings...")
+        settings_button.setFont(button_font)
+        settings_button.setStyleSheet(button_style)
+        settings_button.clicked.connect(self._open_settings_window)
+        layout.addWidget(settings_button)
+
         verse_label = QLabel("Verse Navigation")
         verse_label.setFont(QFont("Helvetica", 13, QFont.Weight.Bold))
         verse_label.setStyleSheet("color: #1a1a1a;")
@@ -153,14 +167,12 @@ class HymnDisplayWindow(QMainWindow):
         layout.setContentsMargins(40, 40, 40, 40)
 
         self.display_title = QLabel()
-        self.display_title.setFont(QFont("Helvetica", 20, QFont.Weight.Bold))
-        self.display_title.setStyleSheet("color: #ffffff;")
+        self.display_title.setTextFormat(Qt.TextFormat.RichText)
         self.display_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.display_title)
 
         self.display_text = QLabel()
-        self.display_text.setFont(QFont("Helvetica", 24))
-        self.display_text.setStyleSheet("color: #ffffff;")
+        self.display_text.setTextFormat(Qt.TextFormat.RichText)
         self.display_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.display_text.setWordWrap(True)
         layout.addStretch()
@@ -209,6 +221,29 @@ class HymnDisplayWindow(QMainWindow):
         self._add_hymn_window.show()
         self._add_hymn_window.raise_()
         self._add_hymn_window.activateWindow()
+
+    def _open_settings_window(self) -> None:
+        if self._settings_window is None:
+            self._settings_window = SettingsWindow(self.display_settings)
+            self._settings_window.settings_saved.connect(self._on_settings_saved)
+            self._settings_window.destroyed.connect(
+                lambda: setattr(self, "_settings_window", None)
+            )
+        self._settings_window.show()
+        self._settings_window.raise_()
+        self._settings_window.activateWindow()
+
+    def _on_settings_saved(self, settings: DisplaySettings) -> None:
+        self.display_settings = settings
+        self._refresh_display()
+
+    def _set_display_title(self, text: str) -> None:
+        self.display_title.setText(
+            format_display_html(text, self.display_settings, bold=True)
+        )
+
+    def _set_display_text(self, text: str) -> None:
+        self.display_text.setText(format_display_html(text, self.display_settings))
 
     def _on_hymn_added(self, hymn_id: int) -> None:
         self._reload_hymn_list(select_hymn_id=hymn_id)
@@ -308,8 +343,8 @@ class HymnDisplayWindow(QMainWindow):
         self.hymn_list.blockSignals(False)
 
         if not has_hymn:
-            self.display_title.setText("")
-            self.display_text.setText("No hymn selected.")
+            self._set_display_title("")
+            self._set_display_text("No hymn selected.")
             self.verse_info.setText("")
             return
 
@@ -317,13 +352,13 @@ class HymnDisplayWindow(QMainWindow):
         verse = database.get_verse(self.current_hymn_id, self.current_verse)
 
         if verse is None:
-            self.display_title.setText("")
-            self.display_text.setText("Verse not found.")
+            self._set_display_title("")
+            self._set_display_text("Verse not found.")
             self.verse_info.setText("")
             return
 
-        self.display_title.setText(verse["title"])
-        self.display_text.setText(verse["text"])
+        self._set_display_title(verse["title"])
+        self._set_display_text(verse["text"])
         self.verse_info.setText(f"Verse {self.current_verse} of {total}")
 
         self.first_button.setEnabled(self.current_verse > 1)

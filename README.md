@@ -2,6 +2,8 @@
 
 Hymn Director is a desktop app for displaying hymn verses during congregational singing. The left side of the window holds controls; the right side shows the current hymn title and verse text on a black background suitable for projection.
 
+![Hymn Director main window showing hymn selection and verse display](docs/screenshot.png)
+
 ## Requirements
 
 - Python 3.12 or newer
@@ -159,6 +161,7 @@ uv run init-db
 ```
 hymn-director/
 ├── data/                  # Database and settings (development)
+├── docs/                  # Documentation assets
 ├── scripts/               # Build scripts
 ├── src/hymn_director/     # Application source code
 ├── hymn-director.spec     # PyInstaller build configuration

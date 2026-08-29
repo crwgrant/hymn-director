@@ -41,6 +41,8 @@ Drag the divider between the panels to adjust how much space each side uses. The
 
 The hymn list shows every hymn in the database, sorted by hymn number. Click a hymn to display it. The app starts on the first hymn in the list.
 
+Use the search box above the list to filter by hymn number or title. Matching is case-insensitive and updates as you type. Clear the search to show all hymns again.
+
 ### Navigate verses
 
 Use the verse buttons below the hymn list:

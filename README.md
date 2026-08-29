@@ -30,10 +30,12 @@ The window opens at a 2:1 width-to-height ratio by default. You can resize it as
 
 ## Main window
 
-The app is split into two halves:
+The app is split into two resizable panels:
 
 - **Left panel** — hymn list, management buttons, verse navigation, and display settings
 - **Right panel** — hymn title and verse text on a black background
+
+Drag the divider between the panels to adjust how much space each side uses.
 
 ### Select a hymn
 

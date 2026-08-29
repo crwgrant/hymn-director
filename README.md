@@ -62,6 +62,26 @@ Each hymn number must be unique. If you try to save a number that is already in 
 
 The hymn list updates automatically and selects the hymn you just added.
 
+## Import hymns from JSON
+
+You can bulk-import hymns from a JSON file such as `lds_hymns.json` or `childrens_songbook.json`.
+
+1. Click **Import...**
+2. Choose a JSON file
+3. Review the import summary
+
+Each entry in the file should have a `title`, optional `number`, and a `verses` array of strings. Hymns whose number is already in the database are skipped. Entries with no verses or invalid data are skipped as well.
+
+## Export hymns to JSON
+
+You can export all hymns in the database to a JSON file in the same format used for import.
+
+1. Click **Export...**
+2. Choose where to save the file
+3. Review the export summary
+
+The exported file contains a `number`, `title`, and `verses` array for each hymn, matching the format of `lds_hymns.json` and `childrens_songbook.json`.
+
 ## Delete a hymn
 
 1. Select the hymn in the list

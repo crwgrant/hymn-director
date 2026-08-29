@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -113,6 +114,18 @@ class HymnDisplayWindow(QMainWindow):
         add_hymn_button.setStyleSheet(button_style)
         add_hymn_button.clicked.connect(self._open_add_hymn_window)
         layout.addWidget(add_hymn_button)
+
+        import_button = QPushButton("Import...")
+        import_button.setFont(button_font)
+        import_button.setStyleSheet(button_style)
+        import_button.clicked.connect(self._import_hymns)
+        layout.addWidget(import_button)
+
+        export_button = QPushButton("Export...")
+        export_button.setFont(button_font)
+        export_button.setStyleSheet(button_style)
+        export_button.clicked.connect(self._export_hymns)
+        layout.addWidget(export_button)
 
         self.delete_hymn_button = QPushButton("Delete Hymn")
         self.delete_hymn_button.setFont(button_font)
@@ -249,6 +262,67 @@ class HymnDisplayWindow(QMainWindow):
 
     def _on_hymn_added(self, hymn_id: int) -> None:
         self._reload_hymn_list(select_hymn_id=hymn_id)
+
+    def _import_hymns(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Hymns",
+            "",
+            "JSON Files (*.json);;All Files (*)",
+        )
+        if not path:
+            return
+
+        try:
+            hymns = database.load_hymns_from_json(path)
+            result = database.import_hymns(hymns)
+        except ValueError as error:
+            QMessageBox.warning(self, "Import Failed", str(error))
+            return
+
+        if result.imported > 0:
+            self._reload_hymn_list()
+
+        lines = []
+        if result.imported:
+            lines.append(
+                f"Imported {result.imported} hymn{'s' if result.imported != 1 else ''}."
+            )
+        if result.skipped_duplicate:
+            lines.append(
+                f"Skipped {result.skipped_duplicate} with duplicate numbers."
+            )
+        if result.skipped_empty:
+            lines.append(f"Skipped {result.skipped_empty} with no verses.")
+        if result.skipped_invalid:
+            lines.append(f"Skipped {result.skipped_invalid} with invalid data.")
+
+        if not lines:
+            lines.append("No hymns were found in the file.")
+
+        QMessageBox.information(self, "Import Complete", "\n".join(lines))
+
+    def _export_hymns(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Hymns",
+            "hymns.json",
+            "JSON Files (*.json);;All Files (*)",
+        )
+        if not path:
+            return
+
+        try:
+            count = database.export_hymns_to_json(path)
+        except ValueError as error:
+            QMessageBox.warning(self, "Export Failed", str(error))
+            return
+
+        QMessageBox.information(
+            self,
+            "Export Complete",
+            f"Exported {count} hymn{'s' if count != 1 else ''}.",
+        )
 
     def _delete_selected_hymn(self) -> None:
         if self.current_hymn_id is None:

@@ -5,8 +5,8 @@ from __future__ import annotations
 import sys
 import sqlite3
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import QEvent, Qt
+from PyQt6.QtGui import QCloseEvent, QFont
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -31,6 +31,11 @@ from hymn_director.display_config import (
 )
 from hymn_director.icon_utils import apply_app_icon, apply_window_icon
 from hymn_director.settings_window import SettingsWindow
+from hymn_director.window_config import (
+    WindowSettings,
+    load_window_settings,
+    save_window_settings,
+)
 
 
 class HymnDisplayWindow(QMainWindow):
@@ -48,17 +53,25 @@ class HymnDisplayWindow(QMainWindow):
         self.current_hymn_id = self.hymns[0]["id"] if self.hymns else None
         self.current_verse = 1
         self.display_settings = load_display_settings()
+        self.window_settings = load_window_settings()
         self._add_hymn_window: AddHymnWindow | None = None
         self._settings_window: SettingsWindow | None = None
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setChildrenCollapsible(False)
-        splitter.addWidget(self._build_controls_panel())
-        splitter.addWidget(self._build_display_panel())
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([self.DEFAULT_WIDTH // 2, self.DEFAULT_WIDTH // 2])
-        self.setCentralWidget(splitter)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.addWidget(self._build_controls_panel())
+        self.splitter.addWidget(self._build_display_panel())
+        self.splitter.setStretchFactor(0, 1)
+        self.splitter.setStretchFactor(1, 1)
+        if self.window_settings.splitter_sizes is not None:
+            self.splitter.setSizes(self.window_settings.splitter_sizes)
+        else:
+            self.splitter.setSizes([self.DEFAULT_WIDTH // 2, self.DEFAULT_WIDTH // 2])
+        self.splitter.splitterMoved.connect(self._save_window_settings)
+        self.setCentralWidget(self.splitter)
+
+        if self.window_settings.is_maximized:
+            self.showMaximized()
 
         self._refresh_display()
 
@@ -455,6 +468,25 @@ class HymnDisplayWindow(QMainWindow):
         self.prev_button.setEnabled(self.current_verse > 1)
         self.next_button.setEnabled(self.current_verse < total)
         self.last_button.setEnabled(self.current_verse < total)
+
+    def _save_window_settings(self) -> None:
+        save_window_settings(
+            WindowSettings(
+                splitter_sizes=self.splitter.sizes(),
+                is_maximized=bool(
+                    self.windowState() & Qt.WindowState.WindowMaximized
+                ),
+            )
+        )
+
+    def changeEvent(self, event: QEvent | None) -> None:
+        if event is not None and event.type() == QEvent.Type.WindowStateChange:
+            self._save_window_settings()
+        super().changeEvent(event)
+
+    def closeEvent(self, event: QCloseEvent | None) -> None:
+        self._save_window_settings()
+        super().closeEvent(event)
 
 
 def main() -> int:

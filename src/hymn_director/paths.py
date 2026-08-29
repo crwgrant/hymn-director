@@ -48,6 +48,10 @@ def config_path() -> Path:
     return user_data_dir() / "display_settings.json"
 
 
+def window_config_path() -> Path:
+    return user_data_dir() / "window_settings.json"
+
+
 def icon_path() -> Path | None:
     directory = icons_dir()
     if directory is None:

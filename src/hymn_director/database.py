@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
+from dataclasses import dataclass
+from pathlib import Path
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS hymns (
@@ -231,6 +234,111 @@ def delete_hymn(hymn_id: int) -> None:
         conn.execute("DELETE FROM verses WHERE hymn_id = ?", (hymn_id,))
         conn.execute("DELETE FROM hymns WHERE id = ?", (hymn_id,))
         conn.commit()
+
+
+@dataclass
+class ImportResult:
+    imported: int = 0
+    skipped_duplicate: int = 0
+    skipped_empty: int = 0
+    skipped_invalid: int = 0
+
+
+def load_hymns_from_json(path: Path | str) -> list[dict]:
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except OSError as error:
+        raise ValueError(f"Could not read file: {path}") from error
+    except json.JSONDecodeError as error:
+        raise ValueError(f"Invalid JSON: {error.msg}") from error
+
+    if not isinstance(data, list):
+        raise ValueError("JSON file must contain an array of hymns.")
+
+    return data
+
+
+def _parse_hymn_entry(entry: object) -> dict | None:
+    if not isinstance(entry, dict):
+        return None
+
+    title = entry.get("title")
+    if not isinstance(title, str) or not title.strip():
+        return None
+
+    verses = entry.get("verses")
+    if not isinstance(verses, list):
+        return None
+
+    number = entry.get("number")
+    if number is not None:
+        try:
+            number = int(number)
+        except (TypeError, ValueError):
+            return None
+
+    cleaned_verses = [
+        text.strip() for text in verses if isinstance(text, str) and text.strip()
+    ]
+    return {
+        "title": title.strip(),
+        "number": number,
+        "verses": cleaned_verses,
+    }
+
+
+def _next_available_number_from(used: set[int]) -> int:
+    candidate = 1
+    while candidate in used:
+        candidate += 1
+    return candidate
+
+
+def import_hymns(hymns: list[dict]) -> ImportResult:
+    result = ImportResult()
+
+    with get_connection() as conn:
+        used_numbers = {
+            row[0]
+            for row in conn.execute(
+                "SELECT number FROM hymns WHERE number IS NOT NULL"
+            ).fetchall()
+        }
+
+        for entry in hymns:
+            parsed = _parse_hymn_entry(entry)
+            if parsed is None:
+                result.skipped_invalid += 1
+                continue
+
+            if not parsed["verses"]:
+                result.skipped_empty += 1
+                continue
+
+            number = parsed["number"]
+            if number is not None and number in used_numbers:
+                result.skipped_duplicate += 1
+                continue
+
+            if number is None:
+                number = _next_available_number_from(used_numbers)
+
+            cursor = conn.execute(
+                "INSERT INTO hymns (title, number) VALUES (?, ?)",
+                (parsed["title"], number),
+            )
+            hymn_id = cursor.lastrowid
+            for verse_number, text in enumerate(parsed["verses"], start=1):
+                conn.execute(
+                    "INSERT INTO verses (hymn_id, verse_number, text) VALUES (?, ?, ?)",
+                    (hymn_id, verse_number, text),
+                )
+            used_numbers.add(number)
+            result.imported += 1
+
+        conn.commit()
+
+    return result
 
 
 def init_cli() -> None:

@@ -341,6 +341,38 @@ def import_hymns(hymns: list[dict]) -> ImportResult:
     return result
 
 
+def export_hymns() -> list[dict]:
+    hymns: list[dict] = []
+    with get_connection() as conn:
+        hymn_rows = conn.execute(
+            "SELECT id, title, number FROM hymns ORDER BY number, title"
+        ).fetchall()
+        for hymn in hymn_rows:
+            verse_rows = conn.execute(
+                "SELECT text FROM verses WHERE hymn_id = ? ORDER BY verse_number",
+                (hymn["id"],),
+            ).fetchall()
+            entry: dict = {}
+            if hymn["number"] is not None:
+                entry["number"] = hymn["number"]
+            entry["title"] = hymn["title"]
+            entry["verses"] = [row["text"] for row in verse_rows]
+            hymns.append(entry)
+    return hymns
+
+
+def export_hymns_to_json(path: Path | str) -> int:
+    hymns = export_hymns()
+    try:
+        Path(path).write_text(
+            json.dumps(hymns, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as error:
+        raise ValueError(f"Could not write file: {path}") from error
+    return len(hymns)
+
+
 def init_cli() -> None:
     init_database()
     hymns = list_hymns()

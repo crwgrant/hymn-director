@@ -121,6 +121,12 @@ class HymnDisplayWindow(QMainWindow):
         import_button.clicked.connect(self._import_hymns)
         layout.addWidget(import_button)
 
+        export_button = QPushButton("Export...")
+        export_button.setFont(button_font)
+        export_button.setStyleSheet(button_style)
+        export_button.clicked.connect(self._export_hymns)
+        layout.addWidget(export_button)
+
         self.delete_hymn_button = QPushButton("Delete Hymn")
         self.delete_hymn_button.setFont(button_font)
         self.delete_hymn_button.setStyleSheet(button_style)
@@ -295,6 +301,28 @@ class HymnDisplayWindow(QMainWindow):
             lines.append("No hymns were found in the file.")
 
         QMessageBox.information(self, "Import Complete", "\n".join(lines))
+
+    def _export_hymns(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Hymns",
+            "hymns.json",
+            "JSON Files (*.json);;All Files (*)",
+        )
+        if not path:
+            return
+
+        try:
+            count = database.export_hymns_to_json(path)
+        except ValueError as error:
+            QMessageBox.warning(self, "Export Failed", str(error))
+            return
+
+        QMessageBox.information(
+            self,
+            "Export Complete",
+            f"Exported {count} hymn{'s' if count != 1 else ''}.",
+        )
 
     def _delete_selected_hymn(self) -> None:
         if self.current_hymn_id is None:

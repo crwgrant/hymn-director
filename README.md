@@ -35,7 +35,7 @@ The app is split into two resizable panels:
 - **Left panel** — hymn list, management buttons, verse navigation, and display settings
 - **Right panel** — hymn title and verse text on a black background
 
-Drag the divider between the panels to adjust how much space each side uses.
+Drag the divider between the panels to adjust how much space each side uses. The divider position and maximized state are remembered between sessions.
 
 ### Select a hymn
 
@@ -169,6 +169,7 @@ Display settings and any hymns you add or edit are saved there, not inside the a
 |------|---------|
 | `data/hymns.db` | SQLite database of hymns and verses |
 | `data/display_settings.json` | Display font and spacing preferences |
+| `data/window_settings.json` | Panel divider sizes and maximized state |
 | `lds_hymns.json` | LDS hymn book lyrics (generated from `ldshymnlyrics/`) |
 | `childrens_songbook.json` | Children's songbook lyrics (generated from `ldshymnlyrics/childrenssongbook/`) |
 

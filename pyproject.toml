@@ -5,6 +5,7 @@ description = "Display hymn verses for congregational singing"
 authors = [
     { name = "crwgrant", email = "crwgrant@gmail.com" }
 ]
+license = "GPL-3.0-or-later"
 requires-python = ">=3.12"
 dependencies = [
     "platformdirs>=4.0.0",

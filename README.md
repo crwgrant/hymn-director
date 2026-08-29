@@ -208,8 +208,13 @@ hymn-director/
 ├── scripts/               # Build and conversion scripts
 ├── src/hymn_director/     # Application source code
 ├── hymn-director.spec     # PyInstaller build configuration
+├── LICENSE                # GPL-3.0-or-later
 ├── lds_hymns.json         # Generated LDS hymn book lyrics
 ├── childrens_songbook.json # Generated children's songbook lyrics
 ├── pyproject.toml
 └── uv.lock
 ```
+
+## License
+
+Hymn Director is licensed under the [GNU General Public License v3.0 or later](LICENSE). This license applies to the application source code only, not to hymn or songbook lyrics imported by users.

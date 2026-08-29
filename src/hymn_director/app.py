@@ -6,11 +6,12 @@ import sys
 import sqlite3
 
 from PyQt6.QtCore import QEvent, Qt
-from PyQt6.QtGui import QCloseEvent, QFont
+from PyQt6.QtGui import QCloseEvent, QFont, QIcon, QPainter, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
@@ -18,6 +19,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSplitter,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -73,7 +75,7 @@ class HymnDisplayWindow(QMainWindow):
         if self.window_settings.is_maximized:
             self.showMaximized()
 
-        self._refresh_display()
+        self._refresh_hymn_list_view()
 
     def _build_controls_panel(self) -> QWidget:
         panel = QWidget()
@@ -101,6 +103,23 @@ class HymnDisplayWindow(QMainWindow):
         hymn_label.setStyleSheet("color: #1a1a1a;")
         layout.addWidget(hymn_label)
 
+        self.search_input = QLineEdit()
+        self.search_input.setFont(QFont("Helvetica", 12))
+        self.search_input.setPlaceholderText("Search by number or title...")
+        self.search_input.setClearButtonEnabled(True)
+        self.search_input.setStyleSheet(
+            "QLineEdit {"
+            "  background-color: #ececec;"
+            "  color: #1a1a1a;"
+            "  border: 1px solid #999999;"
+            "  border-radius: 4px;"
+            "  padding: 8px;"
+            "}"
+        )
+        self.search_input.textChanged.connect(self._apply_hymn_search)
+        self._style_search_clear_button()
+        layout.addWidget(self.search_input)
+
         self.hymn_list = QListWidget()
         self.hymn_list.setFont(QFont("Helvetica", 12))
         self.hymn_list.setStyleSheet(
@@ -118,8 +137,6 @@ class HymnDisplayWindow(QMainWindow):
             "}"
             "QListWidget::item:hover { background-color: #d8d8d8; }"
         )
-        for hymn in self.hymns:
-            self.hymn_list.addItem(self._make_hymn_item(hymn))
         self.hymn_list.currentItemChanged.connect(self._on_hymn_selected)
         layout.addWidget(self.hymn_list, stretch=1)
 
@@ -189,6 +206,35 @@ class HymnDisplayWindow(QMainWindow):
 
         return panel
 
+    def _style_search_clear_button(self) -> None:
+        clear_button = self.search_input.findChild(QToolButton)
+        if clear_button is None:
+            return
+
+        size = 16
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.GlobalColor.black)
+        painter.setFont(QFont("Helvetica", 13, QFont.Weight.Bold))
+        painter.drawText(
+            pixmap.rect(),
+            int(Qt.AlignmentFlag.AlignCenter),
+            "\u00d7",
+        )
+        painter.end()
+
+        clear_button.setIcon(QIcon(pixmap))
+        clear_button.setStyleSheet(
+            "QToolButton {"
+            "  background: transparent;"
+            "  border: none;"
+            "  padding: 0px;"
+            "}"
+            "QToolButton:hover { background-color: #d8d8d8; border-radius: 2px; }"
+        )
+
     def _build_display_panel(self) -> QWidget:
         panel = QWidget()
         panel.setMinimumWidth(240)
@@ -230,24 +276,51 @@ class HymnDisplayWindow(QMainWindow):
         item.setData(Qt.ItemDataRole.UserRole, hymn["id"])
         return item
 
-    def _reload_hymn_list(self, select_hymn_id: int | None = None) -> None:
-        self.hymns = database.list_hymns()
+    def _hymn_matches_search(self, hymn: sqlite3.Row, query: str) -> bool:
+        normalized = query.casefold()
+        if normalized in hymn["title"].casefold():
+            return True
+        if hymn["number"] is not None and normalized in str(hymn["number"]):
+            return True
+        return False
+
+    def _filtered_hymns(self) -> list[sqlite3.Row]:
+        query = self.search_input.text().strip()
+        if not query:
+            return self.hymns
+        return [
+            hymn for hymn in self.hymns if self._hymn_matches_search(hymn, query)
+        ]
+
+    def _refresh_hymn_list_view(self, select_hymn_id: int | None = None) -> None:
+        visible_hymns = self._filtered_hymns()
         self.hymn_list.blockSignals(True)
         self.hymn_list.clear()
-        for hymn in self.hymns:
+        for hymn in visible_hymns:
             self.hymn_list.addItem(self._make_hymn_item(hymn))
         self.hymn_list.blockSignals(False)
 
-        if select_hymn_id is not None and any(
-            hymn["id"] == select_hymn_id for hymn in self.hymns
+        target_id = select_hymn_id if select_hymn_id is not None else self.current_hymn_id
+        if target_id is not None and any(
+            hymn["id"] == target_id for hymn in visible_hymns
         ):
-            self._select_hymn(select_hymn_id)
-        elif self.hymns:
-            self._select_hymn(self.hymns[0]["id"])
-        else:
+            if target_id != self.current_hymn_id:
+                self._select_hymn(target_id)
+            else:
+                self._refresh_display()
+        elif visible_hymns:
+            self._select_hymn(visible_hymns[0]["id"])
+        elif not self.hymns:
             self.current_hymn_id = None
             self.current_verse = 1
             self._refresh_display()
+
+    def _apply_hymn_search(self) -> None:
+        self._refresh_hymn_list_view()
+
+    def _reload_hymn_list(self, select_hymn_id: int | None = None) -> None:
+        self.hymns = database.list_hymns()
+        self._refresh_hymn_list_view(select_hymn_id)
 
     def _open_add_hymn_window(self) -> None:
         if self._add_hymn_window is None:

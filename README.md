@@ -147,6 +147,8 @@ Display settings and any hymns you add or edit are saved there, not inside the a
 |------|---------|
 | `data/hymns.db` | SQLite database of hymns and verses |
 | `data/display_settings.json` | Display font and spacing preferences |
+| `lds_hymns.json` | LDS hymn book lyrics (generated from `ldshymnlyrics/`) |
+| `childrens_songbook.json` | Children's songbook lyrics (generated from `ldshymnlyrics/childrenssongbook/`) |
 
 On first run, the database is created automatically with sample hymns if it does not exist yet.
 
@@ -156,15 +158,33 @@ To recreate or seed the database manually:
 uv run init-db
 ```
 
+### Convert hymn lyrics to JSON
+
+Lyrics in `ldshymnlyrics/` are plain text files with verses separated by `###`. To combine them into JSON files in the project root:
+
+```bash
+uv run python scripts/convert_lyrics_to_json.py
+```
+
+This writes:
+
+- `lds_hymns.json` — all `.txt` files in `ldshymnlyrics/` (433 hymns)
+- `childrens_songbook.json` — all `.txt` files in `ldshymnlyrics/childrenssongbook/` (255 songs)
+
+Each entry has a `number`, `title`, and `verses` array. Re-run the script after updating the source text files.
+
 ## Project layout
 
 ```
 hymn-director/
 ├── data/                  # Database and settings (development)
 ├── docs/                  # Documentation assets
-├── scripts/               # Build scripts
+├── ldshymnlyrics/         # Source hymn lyrics (plain text)
+├── scripts/               # Build and conversion scripts
 ├── src/hymn_director/     # Application source code
 ├── hymn-director.spec     # PyInstaller build configuration
+├── lds_hymns.json         # Generated LDS hymn book lyrics
+├── childrens_songbook.json # Generated children's songbook lyrics
 ├── pyproject.toml
 └── uv.lock
 ```

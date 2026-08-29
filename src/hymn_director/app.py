@@ -10,13 +10,14 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
-    QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -50,20 +51,20 @@ class HymnDisplayWindow(QMainWindow):
         self._add_hymn_window: AddHymnWindow | None = None
         self._settings_window: SettingsWindow | None = None
 
-        central = QWidget()
-        self.setCentralWidget(central)
-
-        root_layout = QHBoxLayout(central)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.setSpacing(0)
-
-        root_layout.addWidget(self._build_controls_panel(), stretch=1)
-        root_layout.addWidget(self._build_display_panel(), stretch=1)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setChildrenCollapsible(False)
+        splitter.addWidget(self._build_controls_panel())
+        splitter.addWidget(self._build_display_panel())
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([self.DEFAULT_WIDTH // 2, self.DEFAULT_WIDTH // 2])
+        self.setCentralWidget(splitter)
 
         self._refresh_display()
 
     def _build_controls_panel(self) -> QWidget:
         panel = QWidget()
+        panel.setMinimumWidth(240)
         panel.setStyleSheet("background-color: #c8c8c8;")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(24, 24, 24, 24)
@@ -177,19 +178,28 @@ class HymnDisplayWindow(QMainWindow):
 
     def _build_display_panel(self) -> QWidget:
         panel = QWidget()
+        panel.setMinimumWidth(240)
         panel.setStyleSheet("background-color: #000000;")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(40, 40, 40, 40)
 
+        display_size_policy = QSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Ignored,
+        )
+
         self.display_title = QLabel()
         self.display_title.setTextFormat(Qt.TextFormat.RichText)
         self.display_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.display_title.setWordWrap(True)
+        self.display_title.setSizePolicy(display_size_policy)
         layout.addWidget(self.display_title)
 
         self.display_text = QLabel()
         self.display_text.setTextFormat(Qt.TextFormat.RichText)
         self.display_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.display_text.setWordWrap(True)
+        self.display_text.setSizePolicy(display_size_policy)
         layout.addStretch()
         layout.addWidget(self.display_text)
         layout.addStretch()
@@ -433,7 +443,11 @@ class HymnDisplayWindow(QMainWindow):
             self.verse_info.setText("")
             return
 
-        self._set_display_title(verse["title"])
+        hymn = database.get_hymn(self.current_hymn_id)
+        if hymn is not None:
+            self._set_display_title(self._hymn_label(hymn))
+        else:
+            self._set_display_title(verse["title"])
         self._set_display_text(verse["text"])
         self.verse_info.setText(f"Verse {self.current_verse} of {total}")
 

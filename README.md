@@ -132,6 +132,12 @@ uv sync --dev
 .\scripts\build.ps1
 ```
 
+**Windows (Git Bash):** use the same script as macOS/Linux. Do not run `build.ps1` from bash.
+
+```bash
+./scripts/build.sh
+```
+
 Or run the steps manually:
 
 ```bash

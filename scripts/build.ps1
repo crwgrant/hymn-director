@@ -1,3 +1,4 @@
+#!/usr/bin/env -S powershell -NoProfile -ExecutionPolicy Bypass -File
 $ErrorActionPreference = "Stop"
 
 Set-Location (Join-Path $PSScriptRoot "..")

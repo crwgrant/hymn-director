@@ -52,7 +52,7 @@ Use the verse buttons below the hymn list, or the arrow keys:
 - **Next Verse** / **Right Arrow** — advance one verse
 - **Last Verse** — jump to the final verse
 
-Buttons are disabled when that action is not available (for example, **Previous Verse** on verse 1). Arrow keys still work while the hymn list has focus, but not while you are typing in the search box.
+Buttons are disabled when that action is not available (for example, **Previous Verse** on verse 1). Left and right arrow keys still work while the hymn list has focus, but not while you are typing in the search box.
 
 ## Add a hymn
 

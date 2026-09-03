@@ -507,14 +507,19 @@ class HymnDisplayWindow(QMainWindow):
             and event.type() == QEvent.Type.KeyPress
             and isinstance(event, QKeyEvent)
             and self.isActiveWindow()
-            and not self._verse_shortcuts_blocked()
         ):
-            if event.key() == Qt.Key.Key_Right:
-                self._go_next()
+            if event.key() in (Qt.Key.Key_Up, Qt.Key.Key_Down) and (
+                watched is self.hymn_list
+                or QApplication.focusWidget() is self.hymn_list
+            ):
                 return True
-            if event.key() == Qt.Key.Key_Left:
-                self._go_previous()
-                return True
+            if not self._verse_shortcuts_blocked():
+                if event.key() == Qt.Key.Key_Right:
+                    self._go_next()
+                    return True
+                if event.key() == Qt.Key.Key_Left:
+                    self._go_previous()
+                    return True
         return super().eventFilter(watched, event)
 
     def _refresh_display(self) -> None:

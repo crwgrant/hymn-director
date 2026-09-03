@@ -1,6 +1,6 @@
 [project]
 name = "hymn-director"
-version = "0.1.0"
+version = "0.2.0"
 description = "Display hymn verses for congregational singing"
 authors = [
     { name = "crwgrant", email = "crwgrant@gmail.com" }

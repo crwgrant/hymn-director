@@ -5,8 +5,8 @@ from __future__ import annotations
 import sys
 import sqlite3
 
-from PyQt6.QtCore import QEvent, Qt
-from PyQt6.QtGui import QCloseEvent, QFont, QIcon, QPainter, QPixmap
+from PyQt6.QtCore import QEvent, QObject, Qt
+from PyQt6.QtGui import QCloseEvent, QFont, QIcon, QKeyEvent, QPainter, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -75,7 +75,12 @@ class HymnDisplayWindow(QMainWindow):
         if self.window_settings.is_maximized:
             self.showMaximized()
 
+        app = QApplication.instance()
+        if app is not None:
+            app.installEventFilter(self)
+
         self._refresh_hymn_list_view()
+        self.hymn_list.setFocus()
 
     def _build_controls_panel(self) -> QWidget:
         panel = QWidget()
@@ -492,6 +497,26 @@ class HymnDisplayWindow(QMainWindow):
             self.current_verse = total
             self._refresh_display()
 
+    def _verse_shortcuts_blocked(self) -> bool:
+        widget = QApplication.focusWidget()
+        return isinstance(widget, QLineEdit)
+
+    def eventFilter(self, watched: QObject | None, event: QEvent | None) -> bool:
+        if (
+            event is not None
+            and event.type() == QEvent.Type.KeyPress
+            and isinstance(event, QKeyEvent)
+            and self.isActiveWindow()
+            and not self._verse_shortcuts_blocked()
+        ):
+            if event.key() == Qt.Key.Key_Right:
+                self._go_next()
+                return True
+            if event.key() == Qt.Key.Key_Left:
+                self._go_previous()
+                return True
+        return super().eventFilter(watched, event)
+
     def _refresh_display(self) -> None:
         total = self._verse_count()
         has_hymn = self.current_hymn_id is not None and total > 0
@@ -558,6 +583,9 @@ class HymnDisplayWindow(QMainWindow):
         super().changeEvent(event)
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
+        app = QApplication.instance()
+        if app is not None:
+            app.removeEventFilter(self)
         self._save_window_settings()
         super().closeEvent(event)
 

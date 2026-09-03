@@ -45,14 +45,14 @@ Use the search box above the list to filter by hymn number or title. Matching is
 
 ### Navigate verses
 
-Use the verse buttons below the hymn list:
+Use the verse buttons below the hymn list, or the arrow keys:
 
 - **First Verse** — jump to verse 1
-- **Previous Verse** — go back one verse
-- **Next Verse** — advance one verse
+- **Previous Verse** / **Left Arrow** — go back one verse
+- **Next Verse** / **Right Arrow** — advance one verse
 - **Last Verse** — jump to the final verse
 
-Buttons are disabled when that action is not available (for example, **Previous Verse** on verse 1).
+Buttons are disabled when that action is not available (for example, **Previous Verse** on verse 1). Arrow keys still work while the hymn list has focus, but not while you are typing in the search box.
 
 ## Add a hymn
 

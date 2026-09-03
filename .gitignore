@@ -10,3 +10,4 @@ wheels/
 .venv
 **DS_Store**
 ldshymnlyrics
+data/window_settings.json

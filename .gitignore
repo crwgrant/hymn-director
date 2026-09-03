@@ -11,3 +11,4 @@ wheels/
 **DS_Store**
 ldshymnlyrics
 data/window_settings.json
+data\\window_settings.json

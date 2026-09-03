@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import QPoint, Qt, pyqtSignal
+from PyQt6.QtGui import QFont, QPainter, QPolygon
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QFontComboBox,
@@ -11,8 +11,10 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QProxyStyle,
     QPushButton,
     QSpinBox,
+    QStyle,
     QStyleFactory,
     QVBoxLayout,
     QWidget,
@@ -48,6 +50,53 @@ INPUT_STYLE = (
     "}"
 )
 
+# Windows 11 draws a smaller increment glyph than decrement. Draw both ourselves.
+_SPIN_ARROW_HALF_WIDTH = 4
+_SPIN_ARROW_HALF_HEIGHT = 3
+
+
+class _EqualSpinArrowStyle(QProxyStyle):
+    def drawPrimitive(self, element, option, painter, widget=None):
+        up_elements = {
+            QStyle.PrimitiveElement.PE_IndicatorSpinUp,
+            QStyle.PrimitiveElement.PE_IndicatorSpinPlus,
+            QStyle.PrimitiveElement.PE_IndicatorArrowUp,
+        }
+        down_elements = {
+            QStyle.PrimitiveElement.PE_IndicatorSpinDown,
+            QStyle.PrimitiveElement.PE_IndicatorSpinMinus,
+            QStyle.PrimitiveElement.PE_IndicatorArrowDown,
+        }
+        if element in up_elements | down_elements:
+            self._draw_spin_arrow(option, painter, pointing_up=element in up_elements)
+            return
+        super().drawPrimitive(element, option, painter, widget)
+
+    def _draw_spin_arrow(self, option, painter: QPainter, *, pointing_up: bool) -> None:
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        painter.setPen(Qt.PenStyle.NoPen)
+        color = option.palette.color(option.palette.ColorRole.Text)
+        if not (option.state & QStyle.StateFlag.State_Enabled):
+            color = option.palette.color(option.palette.ColorRole.Mid)
+        painter.setBrush(color)
+        center = option.rect.center()
+        cx, cy = center.x(), center.y()
+        if pointing_up:
+            points = [
+                QPoint(cx, cy - _SPIN_ARROW_HALF_HEIGHT),
+                QPoint(cx + _SPIN_ARROW_HALF_WIDTH, cy + _SPIN_ARROW_HALF_HEIGHT),
+                QPoint(cx - _SPIN_ARROW_HALF_WIDTH, cy + _SPIN_ARROW_HALF_HEIGHT),
+            ]
+        else:
+            points = [
+                QPoint(cx - _SPIN_ARROW_HALF_WIDTH, cy - _SPIN_ARROW_HALF_HEIGHT),
+                QPoint(cx + _SPIN_ARROW_HALF_WIDTH, cy - _SPIN_ARROW_HALF_HEIGHT),
+                QPoint(cx, cy + _SPIN_ARROW_HALF_HEIGHT),
+            ]
+        painter.drawPolygon(QPolygon(points))
+        painter.restore()
+
 
 class SettingsWindow(QMainWindow):
     settings_saved = pyqtSignal(DisplaySettings)
@@ -58,6 +107,8 @@ class SettingsWindow(QMainWindow):
         self.setWindowTitle("Display Settings")
         self.resize(460, 360)
         self.setStyle(QStyleFactory.create("Fusion"))
+        self._spin_arrow_style = _EqualSpinArrowStyle(self.style())
+        self._spin_arrow_style.setParent(self)
         apply_window_icon(self)
 
         central = QWidget()
@@ -92,6 +143,7 @@ class SettingsWindow(QMainWindow):
         self.font_size_input.setSuffix(" pt")
         self.font_size_input.setValue(settings.font_size)
         self.font_size_input.setStyleSheet(INPUT_STYLE)
+        self.font_size_input.setStyle(self._spin_arrow_style)
         form.addRow("Font size:", self.font_size_input)
 
         self.line_spacing_input = QSpinBox()
@@ -99,6 +151,7 @@ class SettingsWindow(QMainWindow):
         self.line_spacing_input.setSuffix(" %")
         self.line_spacing_input.setValue(settings.line_spacing)
         self.line_spacing_input.setStyleSheet(INPUT_STYLE)
+        self.line_spacing_input.setStyle(self._spin_arrow_style)
         form.addRow("Line spacing:", self.line_spacing_input)
 
         self.letter_spacing_input = QDoubleSpinBox()
@@ -107,6 +160,7 @@ class SettingsWindow(QMainWindow):
         self.letter_spacing_input.setSuffix(" px")
         self.letter_spacing_input.setValue(settings.letter_spacing)
         self.letter_spacing_input.setStyleSheet(INPUT_STYLE)
+        self.letter_spacing_input.setStyle(self._spin_arrow_style)
         form.addRow("Letter spacing:", self.letter_spacing_input)
 
         self.word_spacing_input = QDoubleSpinBox()
@@ -115,6 +169,7 @@ class SettingsWindow(QMainWindow):
         self.word_spacing_input.setSuffix(" px")
         self.word_spacing_input.setValue(settings.word_spacing)
         self.word_spacing_input.setStyleSheet(INPUT_STYLE)
+        self.word_spacing_input.setStyle(self._spin_arrow_style)
         form.addRow("Word spacing:", self.word_spacing_input)
 
         layout.addLayout(form)
